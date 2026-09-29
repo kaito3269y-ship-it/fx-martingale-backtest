@@ -1,1 +1,53 @@
+name: FX Martingale Backtest
 
+on:
+  workflow_dispatch:
+    inputs:
+      timeframe:
+        description: "Timeframe"
+        required: true
+        default: "m15"
+        type: choice
+        options:
+          - m15
+          - m5
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Dukascopy downloader
+        run: npm install
+
+      - name: Run backtest
+        run: |
+          python backtest.py \
+            --tf "${{ inputs.timeframe }}" \
+            --start "2016-09-01" \
+            --end "2026-09-01"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fx-martingale-${{ inputs.timeframe }}-results
+          path: results/
+          if-no-files-found: warn
