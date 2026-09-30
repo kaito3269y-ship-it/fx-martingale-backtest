@@ -1,0 +1,40 @@
+name: Fetch GetData M15 Samples
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download five M15 CSVs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data_m15
+
+          for pair in eurjpy usdjpy gbpusd audusd eurgbp; do
+            U=$(echo "$pair" | tr '[:lower:]' '[:upper:]')
+
+            url="https://raw.githubusercontent.com/getdata-finance/${pair}-15m-ohlcv-forex-historical-data/main/${U}_15m.csv"
+
+            echo "Downloading $url"
+
+            curl -fL --retry 3 "$url" \
+              -o "data_m15/${U}_15m.csv"
+
+            echo "$U rows: $(($(wc -l < "data_m15/${U}_15m.csv")-1))"
+
+            head -2 "data_m15/${U}_15m.csv"
+            tail -2 "data_m15/${U}_15m.csv"
+          done
+
+      - name: Upload M15 data
+        uses: actions/upload-artifact@v4
+        with:
+          name: getdata-m15-five-pairs
+          path: data_m15/
+          if-no-files-found: error
